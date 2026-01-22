@@ -1,0 +1,83 @@
+---
+title: "First graphics file"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Preliminaries
+
+File started: 22 January 2026
+
+File updated: 22 January 2026
+
+## Starting off with data entry
+
+The syntax will be key here. We always start and end blocks of code with the three single left quotes. Then you start the r features in the braces. We begin by loading libraries, which are collections of commands and features put together.
+```{r loading libraries}
+library(fpp3)
+library(tidyverse)
+library(dplyr)
+```
+
+
+Now we worry about loading the data. 
+
+
+```{r loading the data}
+retail_data <- read.csv("https://raw.githubusercontent.com/flynnecon/forecasting-2026/refs/heads/main/data/RSXFS.csv")
+```
+
+## Moving on to data management
+
+To create a usable date I want to convert this loaded date. The goal is to create a *tsibble* which is our shorthand for a *time series table*. This creates a **tidy** data set which is important for effective data management and analysis. 
+
+```{r create a new month variable}
+retail_ts <- retail_data |> mutate(date = yearmonth(observation_date))
+```
+
+I can now turn this into a *tsibble* with the following command:
+```{r creating a tsibble}
+retail_ts |> as_tsibble(index=date)
+retail_ts
+```
+
+Now let's clean this up a bit and do everything in one line of code, and even get rid of a column we no longer need. 
+
+```{r combining everything together}
+retail_ts <- retail_data |> mutate(date=yearmonth(observation_date)) |> select(-observation_date) |> as_tsibble(index=date)
+retail_ts
+```
+
+## Now let's graph
+
+Our basic graph is going to be the time plot or time series line plot. 
+
+```{r basic plot}
+options(scipen=999)
+retail_ts |> autoplot(rsxfs) + labs(x="Date",y="millions of $", title="US Advanced Retail Sales")
+```
+
+We can actually manage aspects of this right in the code though, like dividing numbers if we want. 
+
+```{r basic plot adjusted}
+retail_ts |> autoplot(rsxfs/1000) + labs(x="Date",y="billions of $", title="US Advanced Retail Sales")
+```
+If we want a first difference, we can do this in the code as well using the **difference** command as you see here. 
+
+```{r first difference graph}
+retail_ts |> autoplot(difference(rsxfs/1000,1)) + labs(x="Date",y="billions of $",title="US Advance Retail Sales, First Difference")
+```
+
+We can actually execute a graph of the percentage change in the code too, which we cannot do in Stata. Recognize, however, that at times to make our code cleaner, or easier for us to follow we might want to create a new variable. 
+
+```{r percentage change}
+retail_ts |> autoplot(100*difference(rsxfs,1)/lag(rsxfs,1),color="blue") + labs(y="%",x="Date",title="US Advance Retail Sales, Percentage Change")
+```
+
+
+
+
+
+
+
