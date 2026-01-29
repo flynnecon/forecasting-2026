@@ -1,0 +1,87 @@
+---
+title: "Second graphics file"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Preliminaries
+
+File started: 26 January 2026
+
+File updated: 26 January 2026
+
+# Our story so far
+
+We did some good work last time and have made the most basic of graphics. 
+This is a *hugely* important thing. Now the question is how to extend the graphics. 
+One thing we need to consider here is that not all graphics will be important, or even *relevant*, to all data. 
+
+```{r loading libraries, warning=FALSE, }
+library(tidyverse)
+library(fpp3)
+library(dplyr)
+```
+
+I am loading a different data set this time, one for oil prices.
+
+```{r loading the data}
+oil_price_data <- read.csv("https://raw.githubusercontent.com/flynnecon/forecasting-2026/refs/heads/main/data/oil_price_data.csv")
+```
+
+
+One wrinkle this time is that there is an issue reading the month automatically.
+THis is done to allow you to see the commands needed to make this adjustment.
+
+```{r making a time series}
+#oilprice_ts <- oil_price_data |> mutate(date=yearmonth(Month)) |> select(-Month) |> as_tsibble(index=date)
+oil_price_data$month <- seq.Date("1977-07-01","2025-12-01",by="1 month")
+oilprice_ts <- oil_price_data |> mutate(date=yearmonth(month)) |> select(-Month) |> as_tsibble(index=date)
+oilprice_ts
+```
+# Picture this
+
+So now we have two data series in one structure **oilprice_ts**.
+Now what do we do to get the graph. If you want a time series graph of only one of the data series it is not too different, just specify the series to chart.
+
+
+```{r basic ts graph for ND oil price}
+oilprice_ts |> autoplot(ndfpp)
+```
+
+```{r one variable graph of WTI}
+oilprice_ts |> autoplot(wtisplc)
+```
+
+While this is alright there are times we want to look at them both. 
+There are really good reasons for this and include:
+
+* Needing/wanting to compare the two
+* Determining if there are likely correlations or some form of relationship
+
+```{r time series graph for both}
+oilprice_ts |> autoplot(ndfpp,color="darkgreen") + geom_line(aes(y=wtisplc),color="blue") + theme_bw()
+```
+
+
+# Rearranging the data
+
+Long time series are fine, but often not enough for us. 
+We need to sometimes reorganize the visual presentation of the data. 
+Part of this can be diagnostic, but it can also be explanatory. 
+The first aspect we deal with is the **seasonplot**.
+
+```{r first season plot for ND}
+oilprice_ts |> gg_season(ndfpp, labels="both")
+```
+
+This is for too much data for us to manage in this fashion. 
+We will limit the data to the last five years right now. 
+
+```{r manageable season plot for ND}
+oilprice_ts |> filter(date > yearmonth("2020 Jan")) |> gg_season(ndfpp,labels="both") + theme_bw()
+```
+
+The seasonal plot is a great way to compare the evolution of a data set over time.
+What we get to see very quickly are common seasonal patterns in the data, such as fluctuations of a certain type always in a certain month.
+In addition the nature of the stacking tell us about the increase or decrease over time.

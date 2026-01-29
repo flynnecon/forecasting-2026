@@ -1,0 +1,29 @@
+---
+title: "Final Graphics (for now)"
+output: html_notebook
+---
+
+
+```{r loading the libraries and data}
+library(tidyverse)
+library(fpp3)
+library(dplyr)
+home_price_data <- read.csv("https://raw.githubusercontent.com/flynnecon/forecasting-2026/refs/heads/main/data/us_house_prices.csv")
+```
+
+```{r setting up tsibble}
+homeprice_ts <- home_price_data |> mutate(date=yearmonth(observation_date)) |> select(-observation_date) |> as_tsibble(index=date)
+```
+
+```{r subseason plot}
+homeprice_ts |> gg_subseries(csus_nsa)
+```
+
+```{r lagplot}
+homeprice_ts |> gg_lag(csus_nsa, geom="point")
+```
+
+
+
+
+
