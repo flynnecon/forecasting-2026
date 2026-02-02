@@ -1,0 +1,72 @@
+<h1><a href="#second-graphics-file" id="second-graphics-file">Second Graphics File</a></h1>
+<p>Economic Forecasting Spring 2026 Started: 26 January 2026 Updated: 26 January 2026</p>
+<h2><a href="#our-story-so-far" id="our-story-so-far">Our story so far</a></h2>
+<p>We did some good work last time and have made the most basic of graphics. This is a <em>hugely</em> important thing. Now the question is how to extend the graphics. One thing we need to consider here is that not all graphics will be important, or even <em>relevant</em>, to all data.</p>
+<pre><code>. import delimited https://raw.githubusercontent.com/flynnecon/forecasting-2026/refs/heads/main/data/oil_price_data.csv,
+&gt;  clear
+(encoding automatically selected: UTF-8)
+(3 vars, 582 obs)
+
+</code></pre>
+<p>One wrinkle this time is that there is an issue reading the month automatically. This is done to allow you to see the commands needed to make this adjustment.</p>
+<pre><code>. gen date = tm(1977m7) + _n-1 
+
+. format date %tm
+
+. tsset date
+
+Time variable: date, 1977m7 to 2025m12
+        Delta: 1 month
+
+. drop month
+
+</code></pre>
+<h2><a href="#picture-this" id="picture-this">Picture this</a></h2>
+<p>So now we have two data series in one structure. Now what do we do to get the graph? If you want a time series graph of only one of the data series it is not too different, just specify the series to chart.</p>
+<pre><code>. tsline ndfpp, name(ndoilprice, replace)
+
+</code></pre>
+<p><img src="Graph6.svg" ></p>
+<pre><code>. tsline wtisplc, name(wtiprice, replace)
+
+</code></pre>
+<p><img src="Graph7.svg" ></p>
+<p>While this is alright there are times we want to look at them both. There are really good reasons for this and include:</p>
+<ol>
+<li>Needing/wanting to compare the two</li>
+<li>Determining if there are likely correlations or some form of relationship</li>
+</ol>
+<p>. tsline ndfpp wtisplc, name(oilprice_combined, replace)</p>
+<p><img src="Graph8.svg" ></p>
+<h2><a href="#rearranging-the-data" id="rearranging-the-data">Rearranging the data</a></h2>
+<p>Long time series are fine, but often not enough for us. We need to sometimes reorganize the visual presentation of the data. Part of this can be diagnostic, but it can also be explanatory. The first aspect we deal with is the <strong>seasonplot</strong>.</p>
+<p>This is something we need to do some extra work for, and we will not necessarily get the exact same graph but we can approximate it for now. First let&rsquo;s create what we need in terms of other data.</p>
+<pre><code>. gen day = dofm(date)
+
+. format day %td
+
+. gen year = yofd(day)
+
+. gen month = month(day)
+
+</code></pre>
+<p>This gives us the date information we need to structure our graph accordingly.</p>
+<pre><code>. twoway line ndfpp month
+
+</code></pre>
+<p><img src="Graph9.svg" ></p>
+<p>This is not great, and we need to do two things:</p>
+<ol>
+<li>Break the connection between the lines (this is not meant to be one line)</li>
+<li>Color code the different lines by year</li>
+</ol>
+<pre><code>. twoway line ndfpp month, connect(L) colorvar(year)
+
+</code></pre>
+<dd_graph>>
+<p>Now this looks like the initial season plot we saw in R. Now we need to just take a look at limiting the data like before.</p>
+<pre><code>. twoway line ndfpp month if date &gt; tm(2020m1), connect(L) colorvar(year)
+
+</code></pre>
+<p><img src="Graph10.svg" ></p>
+<p>The seasonal plot is a great way to compare the evolution of a data set over time. What we get to see very quickly are common seasonal patterns in the data, such as fluctuations of a certain type always in a certain month. In addition the nature of the stacking tell us about the increase or decrease over time.</p>
