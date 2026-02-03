@@ -1,0 +1,44 @@
+---
+title: "Initial Decomposition"
+author: "David T. Flynn, PhD"
+date: "2026-02-03"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r download and libraries}
+library(tidyverse)
+library(fpp3)
+library(dplyr)
+home_price_data <- read.csv("https://raw.githubusercontent.com/flynnecon/forecasting-2026/refs/heads/main/data/us_house_prices.csv")
+```
+
+```{r tsibbles}
+homeprice_ts <- home_price_data |> mutate(date=yearmonth(observation_date)) |> select(-observation_date) |> as_tsibble(index=date)
+```
+
+
+```{r simple lines}
+homeprice_ts |> autoplot(csus_nsa) + geom_line(aes(y=csus_sa), color="blue")
+```
+
+```{r manipulate the data}
+homeprice_ts <- homeprice_ts |> mutate(pc_csus_nsa= 100* difference(csus_nsa)/lag(csus_nsa))
+homeprice_ts <- homeprice_ts |> mutate(pc_csus_sa= 100*difference(csus_sa)/lag(csus_sa))
+homeprice_ts |> autoplot(pc_csus_sa,color="gray") + geom_line(aes(y=pc_csus_nsa),color="maroon") + theme_bw()
+```
+
+```{r decomposition}
+#comp <- homeprice_ts |> model(stl1 = STL(pc_csus_nsa))
+comp1 <- homeprice_ts |> filter (date>= yearmonth("1987 Feb")) |> model(stl1 = STL(pc_csus_nsa))
+components(comp1)
+```
+
+```{r plotting}
+components(comp1) |> autoplot()
+```
+
