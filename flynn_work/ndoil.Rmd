@@ -1,0 +1,62 @@
+---
+title: "ND Oil Price and Employment"
+author: "David T. Flynn, PhD"
+date: "2026-02-05"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+Forecast of NDLF with included oil price impacts
+
+```{r libraries}
+library(tidyverse)
+library(fpp3)
+library(dplyr)
+library(urca)
+```
+
+
+
+```{r loading the data}
+oil_price_data <- read.csv("https://raw.githubusercontent.com/flynnecon/forecasting-2026/refs/heads/main/data/oil_price_data.csv")
+lfdata <- read.csv("https://raw.githubusercontent.com/flynnecon/forecasting-2026/refs/heads/main/data/ndlf.csv")
+oil_price_data$month <- seq.Date("1977-07-01","2025-12-01",by="1 month")
+oilprice_ts <- oil_price_data |> mutate(date=yearmonth(month)) |> select(-Month) |> as_tsibble(index=date)
+lfts <- lfdata |> mutate(month=yearmonth(date)) |> select(-date) |> rename(date=month) |> as_tsibble(index=date) 
+model_ts <- inner_join(oilprice_ts,lfts,by="date")
+```
+
+
+```{r unit root tests}
+model_ts |> features(nde_nsa,unitroot_ndiffs)
+model_ts |> features(nde_nsa,unitroot_kpss)
+model_ts |> mutate(diff_emp = difference(nde_nsa)) |> features(diff_emp,unitroot_kpss)
+model_ts |> features(ndfpp, unitroot_ndiffs)
+model_ts |> features(ndfpp, unitroot_kpss)
+model_ts |> mutate(diff_oilp = difference(ndfpp)) |> features(diff_oilp,unitroot_kpss)
+```
+
+```{r seasonal differences employment}
+model_ts |> features(nde_nsa,unitroot_nsdiffs)
+model_ts |> mutate(diff_emp = difference(nde_nsa,12)) |> features(diff_emp,unitroot_ndiffs)
+```
+
+```{r seasonal differences oil prices}
+model_ts |> features(ndfpp, unitroot_nsdiffs)
+model_ts |> mutate(diff_oilp = difference(ndfpp,12)) |> features(diff_oilp,unitroot_kpss)
+model_ts |> mutate(diff_oilp = difference(ndfpp,12)) |> autoplot(diff_oilp)
+```
+
+```{r model fit 1}
+fit1 <- model_ts |> model(ARIMA(nde_nsa ~ ndfpp))
+report(fit1)
+fit2 <- model_ts |> model(ARIMA(nde_nsa ~ lag(ndfpp)))
+report(fit2)a
+```
+
+
+
