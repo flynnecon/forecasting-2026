@@ -1,0 +1,73 @@
+---
+title: "ND Oil Forecat"
+output: html_notebook
+---
+
+# Preliminaries
+
+Load the libraries we want.
+
+```{r library loading, message=FALSE,warning=FALSE}
+library(fpp3)
+library(dplyr)
+library(tidyverse)
+library(feasts)
+library(ggtime)
+```
+
+We move on to bringing in the oil data and manipulating it as needed to get a usable *tsibble*.
+
+```{r loading nd oil price and lf data}
+oil_price_data <- read.csv("https://raw.githubusercontent.com/flynnecon/forecasting-2026/refs/heads/main/data/oil_price_data.csv")
+oil_price_data$month <- seq.Date("1977-07-01","2025-12-01",by="1 month")
+oilprice_ts <- oil_price_data |> mutate(date=yearmonth(month)) |> select(-Month) |> as_tsibble(index=date)
+```
+
+```{r basic plot}
+oilprice_ts |> autoplot(ndfpp) + geom_line(aes(x=date,y=wtisplc),color="red") + labs(x="Date",y="$")
+oilprice_ts |> autoplot(difference(ndfpp,1)) + geom_line(aes(x=date,y=difference(wtisplc,1)),color="red") + labs(x="Date",y="$")
+```
+
+And lastly we can create the training and testing frames for the data as well. 
+
+```{r dividing the data}
+nd_window <- oilprice_ts |> filter(date >= yearmonth("2001 Jan"))
+nd_training <- nd_window |> filter(date < yearmonth("2021 Jan"))
+nd_testing <- nd_window |> filter(date >= yearmonth("2021 Jan"))
+```
+
+## New Testing
+
+First think to do here would be to test the unit roots. We are using Kwiatkowski-Phillips-Schmidt-Shin (KPSS) test which has the null hypothesis of stationary data, so a rejection here is bad. 
+
+```{r testing unit roots}
+nd_training |> features(ndfpp,unitroot_kpss)
+nd_training |> features(ndfpp,unitroot_ndiffs)
+nd_training |> mutate(diff_train = difference(ndfpp,1)) |> features(diff_train,unitroot_kpss)
+```
+
+Notice that I used a command to tell me the number of differences to employ to get stationarity, and then I checked that it in fact worked. 
+
+```{r running ARIMA model}
+fit1 <- nd_training |> model(arima110 =ARIMA(ndfpp ~ pdq(1,1,0)), arima210 = ARIMA(ndfpp ~ pdq(2,1,0)))
+glance(fit1) |> arrange(AICc)
+fit1 |> select(model='arima110') |> report()
+fit1 |> select(model='arima210') |> report()
+
+```
+
+```{r diagnostics 1}
+fit1 |> select(arima110) |> gg_tsresiduals()
+
+```
+
+```{r forecast}
+fit1 |> forecast(h=58) |> filter(.model=='arima110') |> autoplot(nd_testing)
+```
+
+
+
+
+
+
+
